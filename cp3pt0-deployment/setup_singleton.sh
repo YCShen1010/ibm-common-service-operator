@@ -204,7 +204,19 @@ EOF
     create_operator_group "ibm-licensing-operator-app" "${LICENSING_NAMESPACE}" "$target"
     create_subscription "ibm-licensing-operator-app" "${LICENSING_NAMESPACE}" "$CHANNEL" "ibm-licensing-operator-app" "${LICENSING_SOURCE}" "${SOURCE_NS}" "${INSTALL_MODE}"
     wait_for_operator "${LICENSING_NAMESPACE}" "ibm-licensing-operator"
+    wait_for_license_instance
     accept_license "ibmlicensing" "" "instance"
+}
+
+function wait_for_license_instance() {
+    local name="instance"
+    local condition="${OC} get ibmlicensing -A --no-headers --ignore-not-found | grep ${name} || true"
+    local retries=20
+    local sleep_time=15
+    local total_time_mins=$(( sleep_time * retries / 60))
+    local success_message="ibmlicensing ${name} present"
+    local error_message="Timeout after ${total_time_mins} minutes waiting for ibmlicensing ${name} to be present."
+    wait_for_condition "${condition}" ${retries} ${sleep_time} "${wait_message}" "${success_message}" "${error_message}"
 }
 
 function pre_req() {
@@ -225,6 +237,17 @@ function pre_req() {
     # Check INSTALL_MODE
     if [[ "$INSTALL_MODE" != "Automatic" && "$INSTALL_MODE" != "Manual" ]]; then
         error "Invalid INSTALL_MODE: $INSTALL_MODE, allowed values are 'Automatic' or 'Manual'"
+    
+    # Check if channel is semantic vx.y
+    if [[ $CHANNEL =~ ^v[0-9]+\.[0-9]+$ ]]; then
+        # Check if channel is equal or greater than v4.0
+        if [[ $CHANNEL == v[4-9].* || $CHANNEL == v[4-9] ]]; then  
+            success "Channel is valid"
+        else
+            error "Channel is less than v4.0"
+        fi
+    else
+        error "Channel is not semantic vx.y"
     fi
 
     if [ "$OPERATOR_NS" == "" ]; then

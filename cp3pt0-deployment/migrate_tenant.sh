@@ -58,7 +58,7 @@ function main() {
 
     # Migrate singleton services
     local arguments="--enable-licensing"
-    arguments=" -licensingNs $CONTROL_NS"
+    arguments+=" -licensingNs $CONTROL_NS"
 
     if [[ $ENABLE_PRIVATE_CATALOG -eq 1 ]]; then
         arguments+=" --enable-private-catalog"
@@ -185,10 +185,10 @@ function parse_arguments() {
 
 function print_usage() {
     script_name=`basename ${0}`
-    echo "Usage: ${script_name} --operator-namespace <foundational-services-namespace> [OPTIONS]..."
+    echo "Usage: ${script_name} --license-accept --operator-namespace <foundational-services-namespace> [OPTIONS]..."
     echo ""
     echo "Migrate Cloud Pak 2.0 Foundational services to in Cloud Pak 3.0 Foundational services"
-    echo "The --operator-namespace must be provided."
+    echo "The --license-accept and --operator-namespace <operator-namespace> must be provided."
     echo ""
     echo "Options:"
     echo "   --oc string                    File path to oc CLI. Default uses oc in your PATH"
@@ -211,6 +211,10 @@ function print_usage() {
 function pre_req() {
     check_command "${OC}"
     check_command "${YQ}"
+
+    # TODO: add more compatibility
+    # # checking yq version is v4.30+
+    # check_version "${YQ}" "--version" "mikefarah" "4\.([3-9][0-9])\.[0-9]+"
 
     # checking oc command logged in
     user=$(${OC} whoami 2> /dev/null)
@@ -243,6 +247,18 @@ function pre_req() {
     # Check INSTALL_MODE
     if [[ "$INSTALL_MODE" != "Automatic" && "$INSTALL_MODE" != "Manual" ]]; then
         error "Invalid INSTALL_MODE: $INSTALL_MODE, allowed values are 'Automatic' or 'Manual'"
+    
+    # Check if channel is semantic vx.y
+    if [[ $CHANNEL =~ ^v[0-9]+\.[0-9]+$ ]]; then
+        # Check if channel is equal or greater than v4.0
+        if [[ $CHANNEL == v[4-9].* || $CHANNEL == v[4-9] ]]; then  
+            success "Channel is valid"
+        else
+            error "Channel is less than v4.0"
+        fi
+    else
+        error "Channel is not semantic vx.y"
+    fi
     
     # Check if channel is semantic vx.y
     if [[ $CHANNEL =~ ^v[0-9]+\.[0-9]+$ ]]; then

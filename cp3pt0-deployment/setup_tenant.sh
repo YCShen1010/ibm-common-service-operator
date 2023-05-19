@@ -107,10 +107,10 @@ function parse_arguments() {
 
 function print_usage() {
     script_name=`basename ${0}`
-    echo "Usage: ${script_name} --operator-namespace <bedrock-namespace> [OPTIONS]..."
+    echo "Usage: ${script_name} --license-accept --operator-namespace <bedrock-namespace> [OPTIONS]..."
     echo ""
     echo "Set up an advanced topology tenant for Cloud Pak 3.0 Foundational services."
-    echo "The --operator-namespace must be provided."
+    echo "The --license-accept and --operator-namespace must be provided."
     echo ""
     echo "Options:"
     echo "   --oc string                    File path to oc CLI. Default uses oc in your PATH"
@@ -333,10 +333,15 @@ function install_cs_operator() {
     msg "Installing IBM Foundational services operator into operator namespace - ${OPERATOR_NS}"
 
     info "checking if CommonService CRD exist in the cluster"
-    local is_CS_CRD_exist=$($OC get CustomResourceDefinition.apiextensions.k8s.io | (grep "commonservices.operator.ibm.com " || echo "fail"))
-    if [ "$is_CS_CRD_exist" != "fail" ]; then
+    local is_CS_CRD_exist=$(($OC get commonservice -n "$OPERATOR_NS" --ignore-not-found > /dev/null && echo exists) || echo fail)
+
+    if [ "$is_CS_CRD_exist" == "exists" ]; then
+        info "CommonService CRD exist"
         configure_cs_kind
+    else
+        info "CommonService CRD does not exist, installing ibm-common-service-operator first"
     fi
+
     is_sub_exist "ibm-common-service-operator" "$OPERATOR_NS"
     if [ $? -eq 0 ]; then
         info "There is an ibm-common-service-operator Subscription already\n"

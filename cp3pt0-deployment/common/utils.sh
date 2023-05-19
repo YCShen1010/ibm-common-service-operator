@@ -52,6 +52,21 @@ function check_command() {
     fi
 }
 
+function check_version() {
+    local command=$1
+    local version_cmd=$2
+    local variant=$3
+    local version=$4
+
+    result=$(${command} ${version_cmd})
+    echo "$result" | grep -q "${variant}" && echo "$result" | grep -Eq "${version}"
+    if [[ $? -ne 0 ]]; then
+        error "${command} command is not supported"
+    else
+        success "${command} command is supported"
+    fi
+}
+
 function check_return_code() {
     local rc=$1
     local error_message=$2
@@ -942,4 +957,41 @@ function accept_license() {
     else
         info "License accepted for $kind $cr_name."
     fi
+}
+
+
+function fetch_sub_from_package() {
+    local package=$1
+    local ns=$2
+
+    ${OC} get sub -n "$ns" -o jsonpath="{.items[?(@.spec.name=='$package')].metadata.name}"
+}
+
+function fetch_csv_from_sub() {
+    local sub=$1
+    local ns=$2
+
+    ${OC} get csv -n "$ns" | grep "$sub" | cut -d ' ' -f1
+}
+
+function remove_all_finalizers() {
+    local ns=$1
+
+    apiGroups=$(${OC} api-resources --namespaced -o name)
+    delete_operand_finalizer "${apiGroups}" "${ns}"
+
+}
+
+function delete_operand_finalizer() {
+    local crds=$1
+    local ns=$2
+    for crd in ${crds}; do
+        if [ "${crd}" != "packagemanifests.packages.operators.coreos.com" ] && [ "${crd}" != "events" ] && [ "${crd}" != "events.events.k8s.io" ]; then
+            crs=$(${OC} get ${crd} --no-headers --ignore-not-found -n ${ns} 2>/dev/null | awk '{print $1}')
+            for cr in ${crs}; do
+                msg "Removing the finalizers for resource: ${crd}/${cr}"
+                ${OC} patch ${crd} ${cr} -n ${ns} --type="json" -p '[{"op": "remove", "path":"/metadata/finalizers"}]' 2>/dev/null
+            done
+        fi
+    done
 }

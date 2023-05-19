@@ -88,7 +88,7 @@ function main() {
     isolate_odlm "ibm-odlm" $MASTER_NS
     restart
     if [[ $CERT_MANAGER_MIGRATED == "true" ]]; then
-        wait_for_certmanager "$CONTROL_NS"
+        wait_for_certmanager "$CONTROL_NS" "${ns_list}"
     else
         info "Cert Manager not migrated, skipping wait."
     fi
@@ -99,15 +99,27 @@ function usage() {
 	local script="${0##*/}"
 
 	while read -r ; do echo "${REPLY}" ; done <<-EOF
-	Usage: ${script} [OPTION]...
-	Isolate and prepare common services for upgrade
-	Options:
-	Mandatory arguments to long options are mandatory for short options too.
+Usage: ${script} [OPTION]...
+Isolate and prepare Cloud Pak 2.0 Foundational Services for upgrade
+
+Examples:
+
+# isolate the existing insance scope in ibm-common-serivces namespace and re-deploy cluster sigleton services in cs-control namespace
+isolated.sh --original-cs-ns ibm-common-services --control-ns cs-control
+
+# remove cloudpak-1 and cloudpak-2 namespace from the existing instance scope in ibm-common-services
+isolated.sh --original-cs-ns ibm-common-services --control-ns cs-control --excluded-ns cloudpak-1,cloudpak-2
+
+# add cloudpak-1 and cloudpak-2 namespace into the existing instance scope in ibm-common-services
+isolated.sh --original-cs-ns ibm-common-services --control-ns cs-control --insert-ns cloudpak-1,cloudpak-2
+
+Options:
+Mandatory arguments to long options are mandatory for short options too.
     -h, --help                    display this help and exit
     --original-cs-ns              specify the namespace the original common services installation resides in
     --control-ns                  specify the control namespace value in the common-service-maps configmap
-    --excluded-ns                 specify namespaces to be excluded from the common-service-maps configmap. Comma separated no spaces.
-    --insert-ns                   specify namespaces to be inserted into the common-service-maps configmap. Comma separated no spaces.
+    --excluded-ns                 specify namespaces to be excluded from the instance scope in original-cs-ns. Comma separated no spaces.
+    --insert-ns                   specify namespaces to be inserted into the instance scope in original-cs-ns. Comma separated no spaces.
     -v, --debug integer           Verbosity of logs. Default is 0. Set to 1 for debug logs.
 	EOF
 }
@@ -540,11 +552,59 @@ function cleanup_webhook() {
 
 }
 
+function check_if_certmanager_deployed() {
+    local namespaces=$@
+    info "Checking for cert manager deployed in scope."
+    local deployed="false"
+    for ns in $namespaces
+    do
+        opreqs=$(${OC} get opreq -n $ns --no-headers | awk '{print $1}' | tr '\n' ' ')
+        for opreq in $opreqs
+        do
+            local return_value=$(${OC} get opreq $opreq -n $ns -o yaml | ${YQ} '.spec.requests[]' | grep "name: ibm-cert-manager-operator" || echo "fail")
+            if [[ $return_value != "fail" ]]; then
+                deployed="true"
+                info "Cert manager requested in scope, moving on..."
+                break
+            fi
+        done
+    done
+
+    if [[ $deployed == "false" ]]; then
+        info "Cert manager not requested in scope, deploying..."
+        cat <<EOF > tmp-opreq.yaml
+apiVersion: operator.ibm.com/v1alpha1
+kind: OperandRequest
+metadata:
+  labels:
+    app.kubernetes.io/instance: operand-deployment-lifecycle-manager
+    app.kubernetes.io/managed-by: operand-deployment-lifecycle-manager
+    app.kubernetes.io/name: odlm
+  name: ibm-cert-manager-operator
+  namespace: $MASTER_NS
+spec:
+  requests:
+    - operands:
+        - name: ibm-cert-manager-operator
+      registry: common-service
+      registryNamespace: $MASTER_NS
+EOF
+
+    oc apply -f tmp-opreq.yaml
+    rm -f tmp-opreq.yaml
+    fi
+
+}
+
 function wait_for_certmanager() {
     local namespace=$1
+    shift
+    local namespaces=$@
     title " Wait for Cert Manager pods to come ready in namespace $namespace "
     msg "-----------------------------------------------------------------------"
     
+    check_if_certmanager_deployed "${namespaces}"
+
     #check cert manager operator pod
     local name="ibm-cert-manager-operator"
     local condition="${OC} -n ${namespace} get deploy --no-headers --ignore-not-found | egrep '1/1' | grep ^${name} || true"
@@ -555,33 +615,22 @@ function wait_for_certmanager() {
     local success_message="Deployment ${name} in namespace ${namespace} is running."
     local error_message="Timeout after ${total_time_mins} minutes waiting for deployment ${name} in namespace ${namespace} to be running."
     wait_for_condition "${condition}" ${retries} ${sleep_time} "${wait_message}" "${success_message}" "${error_message}"
-    
-    #check individual pods
-    #webhook
+
+    #check webhook pod runnning
     name="cert-manager-webhook"
-    condition="${OC} get deploy -A --no-headers --ignore-not-found | egrep '1/1' | grep ${name} || true"
-    wait_message="Waiting for deployment ${name} to be running ..."
-    success_message="Deployment ${name} is running."
-    error_message="Timeout after ${total_time_mins} minutes waiting for deployment ${name} to be running."
+    condition="${OC} get pod -A --no-headers --ignore-not-found | egrep '1/1' | grep ${name} || true"
+    wait_message="Waiting for pod ${name} to be running ..."
+    success_message="Pod ${name} is running."
+    error_message="Timeout after ${total_time_mins} minutes waiting for pod ${name} to be running."
     wait_for_condition "${condition}" ${retries} ${sleep_time} "${wait_message}" "${success_message}" "${error_message}"
-    
-    #controller
-    name="cert-manager-controller"
-    condition="${OC} get deploy -A --no-headers --ignore-not-found | egrep '1/1' | grep ${name} || true"
-    wait_message="Waiting for deployment ${name} to be running ..."
-    success_message="Deployment ${name} is running."
-    error_message="Timeout after ${total_time_mins} minutes waiting for deployment ${name} to be running."
-    wait_for_condition "${condition}" ${retries} ${sleep_time} "${wait_message}" "${success_message}" "${error_message}"
-    
-    #cainjector
-    name="cert-manager-cainjector"
-    condition="${OC} get deploy -A --no-headers --ignore-not-found | egrep '1/1' | grep ${name} || true"
-    wait_message="Waiting for deployment ${name} to be running ..."
-    success_message="Deployment ${name} is running."
-    error_message="Timeout after ${total_time_mins} minutes waiting for deployment ${name} to be running."
-    wait_for_condition "${condition}" ${retries} ${sleep_time} "${wait_message}" "${success_message}" "${error_message}"
-    
-    success "Cert Manager ready in namespace $namespace."
+
+    #check no duplicate webhook pod
+    webhook_deployments=$(${OC} get deploy -A --no-headers --ignore-not-found | grep ${name} -c)
+    if [[ $webhook_deployments != "1" ]]; then
+        error "More than one cert-manager-webhook deployment exists on the cluster."
+    fi
+    webhook_ns=$(${OC} get deploy -A | grep cert-manager-webhook | awk '{print $1}')
+    success "Cert Manager ready in namespace $namespace. Cert Manager operands deployed in $webhook_ns"
 }
 
 function msg() {

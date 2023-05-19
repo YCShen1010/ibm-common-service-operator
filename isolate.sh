@@ -82,9 +82,9 @@ function main() {
     create_empty_csmaps
     insert_control_ns
     update_tenant "${MASTER_NS}" "${ns_list}"
+    check_cm_ns_exist "$ns_list $CONTROL_NS" # debating on turning this off by default since this technically falls outside the scope of isolate
     removeNSS
     uninstall_singletons
-    check_cm_ns_exist "$ns_list $CONTROL_NS" # debating on turning this off by default since this technically falls outside the scope of isolate
     isolate_odlm "ibm-odlm" $MASTER_NS
     restart
     if [[ $CERT_MANAGER_MIGRATED == "true" ]]; then
@@ -312,10 +312,7 @@ function uninstall_singletons() {
     "${OC}" delete -n "${MASTER_NS}" --ignore-not-found csv "${csv}"
 
     migrate_lic_cms $MASTER_NS
-    isExists=$("${OC}" get deployments -n "${MASTER_NS}" --ignore-not-found ibm-licensing-operator)
-    if [ ! -z "$isExists" ]; then
-        "${OC}" delete -n "${MASTER_NS}" --ignore-not-found ibmlicensing instance
-    fi
+
 
     #might need a more robust check for if licensing is installed
     #"${OC}" delete -n "${MASTER_NS}" --ignore-not-found sub ibm-licensing-operator
@@ -323,6 +320,11 @@ function uninstall_singletons() {
     if [[ $csv != "fail" ]]; then
         "${OC}" delete -n "${MASTER_NS}" --ignore-not-found sub ibm-licensing-operator
         "${OC}" delete -n "${MASTER_NS}" --ignore-not-found csv "${csv}"
+        local is_deleted=$(("${OC}" delete -n "${MASTER_NS}" --ignore-not-found OperandBindInfo ibm-licensing-bindinfo --timeout=10s > /dev/null && echo "success" ) || echo "fail")
+        if [[ $is_deleted == "fail" ]]; then
+            warning "Failed to delete OperandBindInfo, patching its finalizer to null..."
+            ${OC} patch -n "${MASTER_NS}" OperandBindInfo ibm-licensing-bindinfo --type="json" -p '[{"op": "remove", "path":"/metadata/finalizers"}]'
+        fi
     fi
     "${OC}" delete -n "${MASTER_NS}" --ignore-not-found sub ibm-crossplane-operator-app
     "${OC}" delete -n "${MASTER_NS}" --ignore-not-found sub ibm-crossplane-provider-kubernetes-operator-app

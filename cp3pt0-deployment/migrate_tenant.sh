@@ -88,14 +88,8 @@ function main() {
 
     # Update ibm-common-service-operator channel
     for ns in ${NS_LIST//,/ }; do
-        if [ $ENABLE_PRIVATE_CATALOG -eq 0 ]; then
-            check_cs_catalogsource
-            update_operator ibm-common-service-operator $ns $CHANNEL $SOURCE $SOURCE_NS $INSTALL_MODE
-        else
-            PRIVATE_NS=$ns
-            check_cs_catalogsource
-            update_operator ibm-common-service-operator $PRIVATE_NS $CHANNEL $SOURCE $PRIVATE_NS $INSTALL_MODE
-        fi
+        check_cs_catalogsource $ns
+        update_operator ibm-common-service-operator $ns $CHANNEL $SOURCE $SOURCE_NS $INSTALL_MODE
     done
 
     # Wait for CS operator upgrade

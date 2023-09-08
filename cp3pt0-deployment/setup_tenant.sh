@@ -23,6 +23,7 @@ EXCLUDED_NS=""
 SIZE_PROFILE=""
 INSTALL_MODE="Automatic"
 PREVIEW_MODE=0
+NS_LIST=""
 ENABLE_PRIVATE_CATALOG=0
 OC_CMD="oc"
 DEBUG=0
@@ -96,6 +97,9 @@ function parse_arguments() {
         --license-accept)
             LICENSE_ACCEPT=1
             ;;
+        --enable-private-catalog)
+            ENABLE_PRIVATE_CATALOG=1
+            ;;
         -c | --channel)
             shift
             CHANNEL=$1
@@ -153,6 +157,7 @@ function print_usage() {
     echo "   --tethered-namespaces string   Optional. Add namespaces to this tenant, comma-delimited, e.g. 'ns1,ns2'"
     echo "   --excluded-namespaces string   Optional. Remove namespaces from this tenant, comma-delimited, e.g. 'ns1,ns2'"
     echo "   --license-accept               Required. Set this flag to accept the license agreement"
+    echo "   --enable-private-catalog       Optional. Set this flag to use namespace scoped CatalogSource. Default is in openshift-marketplace namespace"
     echo "   -c, --channel string           Optional. Channel for Subscription(s). Default is v4.1"
     echo "   -i, --install-mode string      Optional. InstallPlan Approval Mode. Default is Automatic. Set to Manual for manual approval mode"
     echo "   -s, --source string            Optional. CatalogSource name. This assumes your CatalogSource is already created. Default is opencloud-operators"
@@ -245,7 +250,7 @@ function pre_req() {
     fi
 
     # Check catalogsource
-    check_cs_catalogsource
+    check_cs_catalogsource $OPERATOR_NS
     echo ""
 }
 
@@ -537,6 +542,15 @@ function install_cs_operator() {
     else
         info "CommonService CRD does not exist, installing ibm-common-service-operator first\n"
     fi
+
+    NS_LIST=$(${OC} get configmap namespace-scope -n ${OPERATOR_NS} -o jsonpath='{.data.namespaces}')
+    if [[ -z "$NS_LIST" ]]; then
+        error "Failed to get tenant scope from ConfigMap namespace-scope in namespace ${OPERATOR_NS}"
+    fi
+
+    for ns in ${NS_LIST//,/ }; do
+        check_cs_catalogsource $ns
+    done
 
     title "Checking whether IBM Common Service operator exist..."
     is_sub_exist "ibm-common-service-operator" "$OPERATOR_NS"

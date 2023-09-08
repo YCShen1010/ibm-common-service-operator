@@ -553,18 +553,19 @@ function catalogsource_correction() {
 }
 
 function check_cs_catalogsource(){
-    title "Check Foundational services CatalogSource..."
-
+    local ns="$1"
     local pm="ibm-common-service-operator"
+
+    title "Check Foundational services CatalogSource..."
     if [ $ENABLE_PRIVATE_CATALOG -eq 0 ]; then
         local source_ns=$SOURCE_NS
         local operator_ns=$OPERATOR_NS
     else
-        local source_ns=$PRIVATE_NS
-        local operator_ns=$PRIVATE_NS
+        local source_ns=$ns
+        local operator_ns=$ns
         local sub_name=$(${OC} get subscription.operators.coreos.com -n ${ns} -l operators.coreos.com/${pm}.${operator_ns}='' --no-headers | awk '{print $1}')
         if [ -z "$sub_name" ]; then
-            warning "Not found subscription ${pm} in ${operator_ns}"
+            warning "Not found subscription ${pm} in ${operator_ns}, skip checking Foundational services CatalogSource"
             return 0
         fi
     fi

@@ -169,7 +169,7 @@ function print_usage() {
     echo "   -cmNs, --cert-manager-namespace string         Optional. Set custom namespace for ibm-cert-manager-operator. Default is ibm-cert-manager"
     echo "   -licensingNs, --licensing-namespace string     Optional. Set custom namespace for ibm-licensing-operator. Default is ibm-licensing"
     echo "   --license-accept                               Required. Set this flag to accept the license agreement."
-    echo "   --preview                                      Enable preview mode (dry run)"
+    echo "   --preview                                      Optional.  Enable preview mode (dry run)"
     echo "   -c, --channel string                           Optional. Channel for Subscription(s). Default is v4.1"
     echo "   -i, --install-mode string                      Optional. InstallPlan Approval Mode. Default is Automatic. Set to Manual for manual approval mode"
     echo "   -v, --debug integer                            Optional. Verbosity of logs. Default is 0. Set to 1 for debug logs"
@@ -233,7 +233,6 @@ function is_migrate_licensing() {
 }
 
 function check_singleton_catalogsource() {
-
     title "Check singleton services CatalogSource..."
     if [ $ENABLE_PRIVATE_CATALOG -eq 1 ]; then
         CM_SOURCE_NS="${CERT_MANAGER_NAMESPACE}"

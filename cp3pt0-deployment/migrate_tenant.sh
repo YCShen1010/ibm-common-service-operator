@@ -88,8 +88,17 @@ function main() {
 
     # Update ibm-common-service-operator channel
     for ns in ${NS_LIST//,/ }; do
-        check_cs_catalogsource $ns
-        update_operator ibm-common-service-operator $ns $CHANNEL $SOURCE $SOURCE_NS $INSTALL_MODE
+        local pm="ibm-common-service-operator"
+        local sub_name=$(${OC} get subscription.operators.coreos.com -n ${ns} -l operators.coreos.com/${pm}.${ns}='' --no-headers | awk '{print $1}')
+        if [ ! -z "$sub_name" ]; then
+            op_source=$SOURCE
+            op_source_ns=$SOURCE_NS
+            if [ $ENABLE_PRIVATE_CATALOG -eq 1 ]; then
+                op_source_ns=$ns
+            fi
+            validate_operator_catalogsource $pm $ns $op_source $op_source_ns $CHANNEL op_source op_source_ns
+            update_operator $pm $ns $CHANNEL $op_source $op_source_ns $INSTALL_MODE
+        fi
     done
 
     # Wait for CS operator upgrade

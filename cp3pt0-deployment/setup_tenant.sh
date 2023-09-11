@@ -23,7 +23,6 @@ EXCLUDED_NS=""
 SIZE_PROFILE=""
 INSTALL_MODE="Automatic"
 PREVIEW_MODE=0
-NS_LIST=""
 ENABLE_PRIVATE_CATALOG=0
 OC_CMD="oc"
 DEBUG=0
@@ -250,7 +249,7 @@ function pre_req() {
     fi
 
     # Check catalogsource
-    check_cs_catalogsource $OPERATOR_NS
+    validate_cs_catalogsource
     echo ""
 }
 
@@ -543,22 +542,32 @@ function install_cs_operator() {
         info "CommonService CRD does not exist, installing ibm-common-service-operator first\n"
     fi
 
-    NS_LIST=$(${OC} get configmap namespace-scope -n ${OPERATOR_NS} -o jsonpath='{.data.namespaces}')
-    if [[ -z "$NS_LIST" ]]; then
-        error "Failed to get tenant scope from ConfigMap namespace-scope in namespace ${OPERATOR_NS}"
-    fi
-
-    for ns in ${NS_LIST//,/ }; do
-        check_cs_catalogsource $ns
-    done
-
     title "Checking whether IBM Common Service operator exist..."
     is_sub_exist "ibm-common-service-operator" "$OPERATOR_NS"
     if [ $? -eq 0 ]; then
         info "There is an ibm-common-service-operator Subscription already\n"
         if [ $PREVIEW_MODE -eq 0 ]; then
-            update_operator "ibm-common-service-operator" "$OPERATOR_NS" $CHANNEL $SOURCE $SOURCE_NS $INSTALL_MODE
-            wait_for_operator_upgrade $OPERATOR_NS "ibm-common-service-operator" $CHANNEL $INSTALL_MODE
+            local pm="ibm-common-service-operator"
+            local ns_list=$(${OC} get configmap namespace-scope -n ${OPERATOR_NS} -o jsonpath='{.data.namespaces}' --ignore-not-found)
+            if [[ -z "$ns_list" ]]; then
+                warning "Not found ConfigMap namespace-scope in namespace ${OPERATOR_NS}, only upgrading operators in namespace $OPERATOR_NS"
+                update_operator $pm $OPERATOR_NS $CHANNEL $SOURCE $SOURCE_NS $INSTALL_MODE
+                wait_for_operator_upgrade $OPERATOR_NS $pm $CHANNEL $INSTALL_MODE
+            else
+                for ns in ${ns_list//,/ }; do
+                    local sub_name=$(${OC} get subscription.operators.coreos.com -n ${ns} -l operators.coreos.com/${pm}.${ns}='' --no-headers | awk '{print $1}')
+                    if [ ! -z "$sub_name" ]; then
+                        op_source=$SOURCE
+                        op_source_ns=$SOURCE_NS
+                        if [ $ENABLE_PRIVATE_CATALOG -eq 1 ]; then
+                            op_source_ns=$ns
+                        fi
+                        validate_operator_catalogsource $pm $ns $op_source $op_source_ns $CHANNEL op_source op_source_ns
+                        update_operator $pm $ns $CHANNEL $op_source $op_source_ns $INSTALL_MODE
+                        wait_for_operator_upgrade $ns $pm $CHANNEL $INSTALL_MODE
+                    fi
+                done
+            fi        
         fi
     else
         create_subscription "ibm-common-service-operator" "$OPERATOR_NS" "$CHANNEL" "ibm-common-service-operator" "${SOURCE}" "${SOURCE_NS}" "${INSTALL_MODE}"
@@ -695,6 +704,16 @@ function upgrade_mitigation() {
             done
         fi
     fi
+}
+
+function validate_cs_catalogsource() {
+    if [ $ENABLE_PRIVATE_CATALOG -eq 1 ]; then
+        SOURCE_NS=$OPERATOR_NS
+    fi
+
+    validate_operator_catalogsource ibm-common-service-operator $OPERATOR_NS $SOURCE $SOURCE_NS $CHANNEL SOURCE SOURCE_NS
+    echo "$SOURCE"
+    echo "$SOURCE_NS"
 }
 
 main $*

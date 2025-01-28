@@ -4,14 +4,14 @@ kind: MutatingWebhookConfiguration
 metadata: 
   name: {{ include "ibm-common-service-operator.fullname" . }}
   annotations: 
-    cert-manager.io/inject-ca-from: system/serving-cert
+    cert-manager.io/inject-ca-from: my-namespace/serving-cert
 webhooks:   
   - admissionReviewVersions: 
       - v1
     clientConfig: 
       service: 
         name: webhook-service
-        namespace: system
+        namespace: my-namespace
         path: /mutate-operator-ibm-com-v1alpha1-operandrequest
     failurePolicy: Ignore
     name: moperandrequest.kb.io

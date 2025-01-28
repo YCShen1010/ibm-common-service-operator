@@ -94,10 +94,12 @@ spec:
                 description: FipsEnabled enables FIPS mode for foundational services
                 type: boolean
               hugepages:
-                description: HugePages describes the hugepages settings for foundational services
+                description: HugePages describes the hugepages settings for foundational
+                  services
                 properties:
                   enable:
-                    description: HugePagesEnabled enables hugepages settings for foundational services
+                    description: HugePagesEnabled enables hugepages settings for foundational
+                      services
                     type: boolean
                 type: object
                 x-kubernetes-preserve-unknown-fields: true
@@ -123,7 +125,8 @@ spec:
                     description: The license key for this deployment.
                     type: string
                   license:
-                    description: The license being accepted where the component has multiple.
+                    description: The license being accepted where the component has
+                      multiple.
                     type: string
                   use:
                     description: The type of license being accepted.
@@ -132,12 +135,15 @@ spec:
               manualManagement:
                 type: boolean
               operatorConfigs:
-                description: OperatorConfigs is a list of configurations to be applied to operators via CSV updates
+                description: OperatorConfigs is a list of configurations to be applied
+                  to operators via CSV updates
                 items:
-                  description: OperatorConfig is configuration composed of key-value pairs to be injected into specified CSVs
+                  description: OperatorConfig is configuration composed of key-value
+                    pairs to be injected into specified CSVs
                   properties:
                     name:
-                      description: Name is the name of the operator as requested in an OperandRequest
+                      description: Name is the name of the operator as requested in
+                        an OperandRequest
                       type: string
                     replicas:
                       description: |-
@@ -220,7 +226,8 @@ spec:
             properties:
               bedrockOperators:
                 items:
-                  description: BedrockOperator describes a list of foundational services' operators currently installed for this tenant.
+                  description: BedrockOperator describes a list of foundational services'
+                    operators currently installed for this tenant.
                   properties:
                     installPlanName:
                       type: string
@@ -239,16 +246,19 @@ spec:
               conditions:
                 description: Conditions represents the current state of CommonService
                 items:
-                  description: CommonServiceCondition defines the observed condition of CommonService
+                  description: CommonServiceCondition defines the observed condition
+                    of CommonService
                   properties:
                     lastTransitionTime:
-                      description: Last time the condition transitioned from one status to another.
+                      description: Last time the condition transitioned from one status
+                        to another.
                       type: string
                     lastUpdateTime:
                       description: The last time this condition was updated.
                       type: string
                     message:
-                      description: A human readable message indicating details about the transition.
+                      description: A human readable message indicating details about
+                        the transition.
                       type: string
                     reason:
                       description: The reason for the condition's last transition.
@@ -262,10 +272,12 @@ spec:
                   type: object
                 type: array
               configStatus:
-                description: ConfigStatus describes various configuration currently applied onto the foundational services installer.
+                description: ConfigStatus describes various configuration currently
+                  applied onto the foundational services installer.
                 properties:
                   catalogName:
-                    description: CatalogName is the name of the CatalogSource foundational services is using
+                    description: CatalogName is the name of the CatalogSource foundational
+                      services is using
                     type: string
                   catalogNamespace:
                     description: CatalogNamespace is the namesapce of the CatalogSource
@@ -297,26 +309,32 @@ spec:
                       operands will be created in.
                     type: string
                   topologyConfigurableCRs:
-                    description: TopologyConfigurableCRs describes the configurable CommonService CR
+                    description: TopologyConfigurableCRs describes the configurable
+                      CommonService CR
                     items:
                       properties:
                         apiVersion:
-                          description: ApiVersion is the api version of the configurable CommonService CR
+                          description: ApiVersion is the api version of the configurable
+                            CommonService CR
                           type: string
                         kind:
-                          description: Kind is the kind of the configurable CommonService CR
+                          description: Kind is the kind of the configurable CommonService
+                            CR
                           type: string
                         namespace:
-                          description: Namespace is the namespace of the configurable CommonService CR
+                          description: Namespace is the namespace of the configurable
+                            CommonService CR
                           type: string
                         objectName:
-                          description: ObjectName is the name of the configurable CommonService CR
+                          description: ObjectName is the name of the configurable
+                            CommonService CR
                           type: string
                       type: object
                     type: array
                 type: object
               overallStatus:
-                description: OverallStatus describes whether the Installation for the foundational services has succeeded or not
+                description: OverallStatus describes whether the Installation for
+                  the foundational services has succeeded or not
                 type: string
               phase:
                 description: Phase describes the phase of the overall installation

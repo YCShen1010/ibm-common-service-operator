@@ -20,7 +20,7 @@ OPERATOR_SDK ?= $(shell which operator-sdk)
 CONTROLLER_GEN ?= $(shell which controller-gen)
 KUSTOMIZE ?= $(shell which kustomize)
 YQ_VERSION=v4.27.3
-KUSTOMIZE_VERSION=v3.8.7
+KUSTOMIZE_VERSION=v5.6.0
 OPERATOR_SDK_VERSION=v1.31.0
 CONTROLLER_TOOLS_VERSION ?= v0.14.0
 

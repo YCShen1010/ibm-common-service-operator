@@ -80,7 +80,7 @@ OPERATOR_IMAGE_NAME ?= common-service-operator
 # Current Operator bundle image name
 BUNDLE_IMAGE_NAME ?= common-service-operator-bundle
 # Current Operator image with registry
-IMG ?= icr.io/cpopen/common-service-operator:latest
+IMG ?= icr.io/cpopen/common-service-operator
 
 CHANNELS := v4.11
 DEFAULT_CHANNEL := v4.11
@@ -250,7 +250,7 @@ generate-all: yq kustomize operator-sdk generate manifests cloudpak-theme-versio
 
 .PHONY: deploy-dryrun
 deploy-dryrun: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+	cd config/manager && $(KUSTOMIZE) edit set image ${IMG}=$(REGISTRY)/$(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):dev
 	$(KUSTOMIZE) build config/default --output config/ibm-common-service-operator.yaml
 
 .PHONY: helm

@@ -3,6 +3,6 @@ resources:
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 images:
-- name: controller
-  newName: icr.io/cpopen/common-service-operator
-  newTag: latest
+- name: icr.io/cpopen/common-service-operator
+  newName: docker-na-public.artifactory.swg-devops.com/hyc-cloud-private-scratch-docker-local/ibmcom/common-service-operator-amd64
+  newTag: dev

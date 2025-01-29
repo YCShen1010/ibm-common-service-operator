@@ -54,7 +54,7 @@ spec:
               fieldPath: metadata.annotations['olm.targetNamespaces']
         - name: OPERATOR_NAME
           value: ibm-common-service-operator
-        image: icr.io/cpopen/common-service-operator:latest
+        image: docker-na-public.artifactory.swg-devops.com/hyc-cloud-private-scratch-docker-local/ibmcom/common-service-operator-amd64:dev
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 10

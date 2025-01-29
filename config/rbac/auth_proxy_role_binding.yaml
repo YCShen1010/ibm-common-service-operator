@@ -8,5 +8,5 @@ roleRef:
   name: proxy-role
 subjects:
 - kind: ServiceAccount
-  name: default
-  namespace: ibm-common-services
+  name: ibm-common-service-operator
+  namespace: ${SERVICEACCOUNT_NAMESPACE}

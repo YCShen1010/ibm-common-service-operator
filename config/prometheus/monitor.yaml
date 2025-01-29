@@ -6,7 +6,6 @@ metadata:
   labels:
     control-plane: controller-manager
   name: controller-manager-metrics-monitor
-  namespace: ibm-common-services
 spec:
   endpoints:
     - path: /metrics

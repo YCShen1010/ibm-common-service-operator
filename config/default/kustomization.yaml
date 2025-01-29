@@ -1,5 +1,17 @@
 # Adds namespace to all resources.
-namespace: system
+transformers:
+- |-
+  apiVersion: builtin
+  kind: NamespaceTransformer
+  metadata:
+    name: notImportantHere
+    namespace: my-namespace
+  setRoleBindingSubjects: allServiceAccounts
+  fieldSpecs:
+    - path: metadata/namespace
+      create: true
+
+namespace: my-namespace
 
 # Value of this field is prepended to the
 # names of all resources, e.g. a deployment named

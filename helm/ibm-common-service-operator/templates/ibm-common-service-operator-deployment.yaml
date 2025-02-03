@@ -39,7 +39,7 @@ spec:
                       - s390x
       containers:         
         - name: ibm-common-service-operator
-          image: docker-na-public.artifactory.swg-devops.com/hyc-cloud-private-scratch-docker-local/ibmcom/common-service-operator-amd64:dev
+          image: "{{ .Values.imagePrefix }}:{{ .Values.imageNamespace }}:{{ .Values.imageTag }}"
           command: 
             - /manager
           env:             

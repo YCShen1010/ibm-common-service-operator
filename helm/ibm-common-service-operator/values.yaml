@@ -13,6 +13,7 @@ ibmCommonServiceOperatorCrb: {}
 ibmCommonServiceOperatorDeployment: {}
 ibmCommonServiceOperatorRb: {}
 ibmCommonServiceOperatorRole: {}
+ibmCommonServiceOperatorWebhookServiceSvc: {}
 mutatingWebhookConfigurationMutatingwebhookconfiguration: {}
 selfsignedIssuerIssuer: {}
 servingCertCertificate: {}

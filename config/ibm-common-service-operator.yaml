@@ -654,14 +654,14 @@ subjects:
 apiVersion: v1
 kind: Service
 metadata:
-  name: webhook-service
+  name: ibm-common-service-operator-webhook-service
   namespace: my-namespace
 spec:
   ports:
   - port: 443
     targetPort: 9443
   selector:
-    control-plane: controller-manager
+    name: ibm-common-service-operator
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -761,7 +761,7 @@ spec:
           seccompProfile:
             type: RuntimeDefault
         volumeMounts:
-        - mountPath: /tmp/k8s-webhook-server/serving-certs
+        - mountPath: /run/secrets/operator.ibm.com/webhook
           name: cert
           readOnly: true
       serviceAccountName: ibm-common-service-operator
@@ -770,7 +770,7 @@ spec:
       - name: cert
         secret:
           defaultMode: 420
-          secretName: webhook-server-cert
+          secretName: ibm-common-service-operator-webhook-server-cert
 ---
 apiVersion: cert-manager.io/v1
 kind: Certificate
@@ -779,8 +779,8 @@ metadata:
   namespace: my-namespace
 spec:
   dnsNames:
-  - webhook-service.my-namespace.svc
-  - webhook-service.my-namespace.svc.cluster.local
+  - ibm-common-service-operator-webhook-service.my-namespace.svc
+  - ibm-common-service-operator-webhook-service.my-namespace.svc.cluster.local
   issuerRef:
     kind: Issuer
     name: selfsigned-issuer

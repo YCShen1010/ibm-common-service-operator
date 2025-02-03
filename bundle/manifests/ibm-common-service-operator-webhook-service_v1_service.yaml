@@ -2,12 +2,12 @@ apiVersion: v1
 kind: Service
 metadata:
   creationTimestamp: null
-  name: webhook-service
+  name: ibm-common-service-operator-webhook-service
 spec:
   ports:
   - port: 443
     targetPort: 9443
   selector:
-    control-plane: controller-manager
+    name: ibm-common-service-operator
 status:
   loadBalancer: {}

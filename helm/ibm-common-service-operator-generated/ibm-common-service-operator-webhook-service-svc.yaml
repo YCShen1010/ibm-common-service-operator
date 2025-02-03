@@ -1,11 +1,11 @@
-
 apiVersion: v1
 kind: Service
 metadata:
   name: ibm-common-service-operator-webhook-service
+  namespace: my-namespace
 spec:
   ports:
-    - port: 443
-      targetPort: 9443
+  - port: 443
+    targetPort: 9443
   selector:
     name: ibm-common-service-operator

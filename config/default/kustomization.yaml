@@ -72,11 +72,11 @@ vars:
   objref:
     kind: Service
     version: v1
-    name: webhook-service
+    name: ibm-common-service-operator-webhook-service
   fieldref:
     fieldpath: metadata.namespace
 - name: SERVICE_NAME
   objref:
     kind: Service
     version: v1
-    name: webhook-service
+    name: ibm-common-service-operator-webhook-service

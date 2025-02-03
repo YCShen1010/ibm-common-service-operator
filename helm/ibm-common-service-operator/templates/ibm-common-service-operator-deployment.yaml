@@ -94,7 +94,7 @@ spec:
             seccompProfile: 
               type: RuntimeDefault
           volumeMounts:             
-            - mountPath: /tmp/k8s-webhook-server/serving-certs
+            - mountPath: /run/secrets/operator.ibm.com/webhook
               name: cert
               readOnly: true
       serviceAccountName: ibm-common-service-operator
@@ -103,4 +103,4 @@ spec:
         - name: cert
           secret: 
             defaultMode: 420
-            secretName: webhook-server-cert
+            secretName: ibm-common-service-operator-webhook-server-cert

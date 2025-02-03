@@ -6,8 +6,8 @@ metadata:
   namespace: {{ .Values.namespace }}
 spec: 
   dnsNames: 
-    - webhook-service.my-namespace.svc
-    - webhook-service.my-namespace.svc.cluster.local
+    - ibm-common-service-operator-webhook-service.my-namespace.svc
+    - ibm-common-service-operator-webhook-service.my-namespace.svc.cluster.local
   issuerRef: 
     kind: Issuer
     name: selfsigned-issuer

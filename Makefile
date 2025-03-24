@@ -263,8 +263,8 @@ build-operator-image: $(CONFIG_DOCKER_TARGET) cloudpak-theme.jar ## Build the op
 
 build-push-image: $(CONFIG_DOCKER_TARGET) build-operator-image  ## Build and push the operator images.
 	@echo "Pushing the $(OPERATOR_IMAGE_NAME) docker image for $(LOCAL_ARCH)..."
-	@docker tag $(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) $(ARTIFACTORYA_REGISTRY)/$(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
-	@docker push $(ARTIFACTORYA_REGISTRY)/$(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION)
+	@docker tag $(OPERATOR_IMAGE_NAME)-$(LOCAL_ARCH):$(VERSION) quay.io/yuchen_shen/cs_operator:keycloak_version
+	@docker push quay.io/yuchen_shen/cs_operator:keycloak_version
 
 multiarch-image: $(CONFIG_DOCKER_TARGET) ## Generate multiarch images for operator image.
 	@MAX_PULLING_RETRY=20 RETRY_INTERVAL=30 common/scripts/multiarch_image.sh $(ARTIFACTORYA_REGISTRY) $(OPERATOR_IMAGE_NAME) $(VERSION) $(RELEASE_VERSION)

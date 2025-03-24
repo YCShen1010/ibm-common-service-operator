@@ -239,7 +239,7 @@ func (b *Bootstrap) InitResources(instance *apiv3.CommonService, forceUpdateODLM
 		}
 
 		klog.Info("Installing/Updating OperandRegistry")
-		if err := b.InstallOrUpdateOpreg(forceUpdateODLMCRs, installPlanApproval); err != nil {
+		if err := b.InstallOrUpdateOpreg(installPlanApproval); err != nil {
 			return err
 		}
 
@@ -278,7 +278,7 @@ func (b *Bootstrap) InitResources(instance *apiv3.CommonService, forceUpdateODLM
 		}
 
 		klog.Info("Installing/Updating OperandRegistry")
-		if err := b.InstallOrUpdateOpreg(forceUpdateODLMCRs, installPlanApproval); err != nil {
+		if err := b.InstallOrUpdateOpreg(installPlanApproval); err != nil {
 			return err
 		}
 
@@ -728,12 +728,26 @@ func (b *Bootstrap) ResourceExists(dc discovery.DiscoveryInterface, apiGroupVers
 }
 
 // InstallOrUpdateOpreg will install or update OperandRegistry when Opreg CRD is existent
-func (b *Bootstrap) InstallOrUpdateOpreg(forceUpdateODLMCRs bool, installPlanApproval olmv1alpha1.Approval) error {
-
+func (b *Bootstrap) InstallOrUpdateOpreg(installPlanApproval olmv1alpha1.Approval) error {
 	if installPlanApproval != "" || b.CSData.ApprovalMode == string(olmv1alpha1.ApprovalManual) {
 		if err := b.updateApprovalMode(); err != nil {
 			return err
 		}
+	}
+
+	// Get ConfigMap data
+	configMap := &corev1.ConfigMap{}
+	err := b.Client.Get(context.TODO(), types.NamespacedName{
+		Name:      constant.IBMCPPCONFIG,
+		Namespace: b.CSData.ServicesNs,
+	}, configMap)
+
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			return err
+		}
+		klog.Infof("ConfigMap %s not found in namespace %s, using default values", constant.IBMCPPCONFIG, b.CSData.ServicesNs)
+		configMap.Data = make(map[string]string)
 	}
 
 	var baseReg string
@@ -752,15 +766,74 @@ func (b *Bootstrap) InstallOrUpdateOpreg(forceUpdateODLMCRs bool, installPlanApp
 		baseReg = constant.CSV3OpReg
 	}
 
-	concatenatedReg, err := constant.ConcatenateRegistries(baseReg, registries, b.CSData)
+	concatenatedReg, err := constant.ConcatenateRegistries(baseReg, registries, b.CSData, configMap.Data)
 	if err != nil {
-		klog.Errorf("failed to concatenate OperandRegistry: %v", err)
+		klog.Errorf("Failed to concatenate OperandRegistry: %v", err)
 		return err
 	}
 
-	if err := b.renderTemplate(concatenatedReg, b.CSData, forceUpdateODLMCRs); err != nil {
+	// // Get existing OperandRegistry if it exists
+	// existingOpreg, err := b.GetOperandRegistry(ctx, "common-service", b.CSData.ServicesNs)
+	// if err != nil && !errors.IsNotFound(err) {
+	// 	return err
+	// }
+
+	// // Check if keycloak-operator entries need updating
+	// if existingOpreg != nil {
+	// 	// Create a copy of the existing registry to apply changes
+	// 	modifiedOpreg := existingOpreg.DeepCopy()
+
+	// 	// Process keycloak-operator fallback channels
+	// 	operatorNames := []string{"keycloak-operator"}
+
+	// 	// Compare the original and modified registry to see if any changes were made
+	// 	for _, opName := range operatorNames {
+	// 		// Find the operator in both registries
+	// 		var origOp *odlm.Operator
+	// 		var modOp *odlm.Operator
+
+	// 		// Find the operator in original registry
+	// 		for i := range existingOpreg.Spec.Operators {
+	// 			if existingOpreg.Spec.Operators[i].Name == opName {
+	// 				origOp = &existingOpreg.Spec.Operators[i]
+	// 				break
+	// 			}
+	// 		}
+
+	// 		// Find the operator in modified registry
+	// 		for i := range modifiedOpreg.Spec.Operators {
+	// 			if modifiedOpreg.Spec.Operators[i].Name == opName {
+	// 				modOp = &modifiedOpreg.Spec.Operators[i]
+	// 				break
+	// 			}
+	// 		}
+
+	// 		// If operator is found in both registries, compare their configurations
+	// 		if origOp != nil && modOp != nil {
+	// 			// Compare fallback channels
+	// 			if !reflect.DeepEqual(origOp.FallbackChannels, modOp.FallbackChannels) {
+	// 				klog.Infof("Detected changes in %s fallback channels, updating OperandRegistry", opName)
+	// 				forceUpdateODLMCRs = true
+	// 				break
+	// 			}
+
+	// 			// Compare channel if it changed
+	// 			if origOp.Channel != modOp.Channel {
+	// 				klog.Infof("Detected changes in %s channel, updating OperandRegistry", opName)
+	// 				forceUpdateODLMCRs = true
+	// 				break
+	// 			}
+	// 		}
+	// 	}
+	// } else {
+	// 	// If no existing registry or force update requested, skip without update
+	// 	klog.Infof("No existing OperandRegistry found.")
+	// }
+
+	if err := b.renderTemplate(concatenatedReg, b.CSData, true); err != nil {
 		return err
 	}
+
 	return nil
 }
 

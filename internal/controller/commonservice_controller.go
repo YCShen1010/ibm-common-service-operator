@@ -500,6 +500,26 @@ func (r *CommonServiceReconciler) mappingToCsRequestForOperandRegistry() handler
 	}
 }
 
+func (r *CommonServiceReconciler) mappingToCsRequestForConfigMap() handler.MapFunc {
+	return func(object client.Object) []reconcile.Request {
+		configMap, ok := object.(*corev1.ConfigMap)
+		if !ok {
+			return nil
+		}
+
+		if configMap.Name == constant.IBMCPPCONFIG && configMap.Namespace == r.Bootstrap.CSData.ServicesNs {
+			// Trigger reconcile of the master CR when ibm-cpp-config changes
+			return []reconcile.Request{
+				{NamespacedName: types.NamespacedName{
+					Name:      constant.MasterCR,
+					Namespace: r.Bootstrap.CSData.OperatorNs,
+				}},
+			}
+		}
+		return nil
+	}
+}
+
 func (r *CommonServiceReconciler) isODLMManagedSubscription() handler.MapFunc {
 	return func(object client.Object) []reconcile.Request {
 		subscription, ok := object.(*olmv1alpha1.Subscription)
@@ -553,6 +573,20 @@ func (r *CommonServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				},
 				DeleteFunc: func(e event.DeleteEvent) bool {
 					return !e.DeleteStateUnknown
+				},
+				UpdateFunc: func(e event.UpdateEvent) bool {
+					return true
+				},
+			})).
+		Watches(
+			&source.Kind{Type: &corev1.ConfigMap{}},
+			handler.EnqueueRequestsFromMapFunc(r.mappingToCsRequestForConfigMap()),
+			builder.WithPredicates(predicate.Funcs{
+				CreateFunc: func(e event.CreateEvent) bool {
+					return true
+				},
+				DeleteFunc: func(e event.DeleteEvent) bool {
+					return false // We don't care about deletions
 				},
 				UpdateFunc: func(e event.UpdateEvent) bool {
 					return true
